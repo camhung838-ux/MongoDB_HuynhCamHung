@@ -3,21 +3,22 @@ from bson import ObjectId
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.db_connect import DbConnect
 from utils.query_generator import QueryGenerator as QG
-from utils.support_functions import show_default_error
+from utils.support_functions import show_default_error, generate_query_find_with_student_id_and_list_courses_join
 
 import re
 
 ########### SUB WINDOWS 3 ###########
 def loop(root, db_connect):
 
-    def clear_student_data():
+    def clear_data():
+        # remove existing data in windows
         for field, str_var in student_variables.items():
             prefix = student_data_structure[field][0] 
             str_var.set(prefix)
 
         total_rows.set(f"Số môn học tham gia: 0")
+        tree.delete(*tree.get_children())
 
     def show_student_data(student_data):
         for field, str_var in student_variables.items():
@@ -31,28 +32,41 @@ def loop(root, db_connect):
 
                 prefix = student_data_structure[field][0] 
                 str_var.set(prefix + f"{value}")
+    
+    def show_enrolls_data(enrolls):
+        row_count = 0
+        for db_row in enrolls:
+            treeview_row = [str(row_count + 1)]
+
+            for key in headings.keys():
+                add_data_to_column = headings[key][2]
+
+                if not add_data_to_column:
+                    continue
+
+                if key in db_row:
+                    value = db_row[key]
+
+                    if key == "enrollDate":
+                        value = value.strftime("%d/%m/%Y")
+                    elif key == "score":
+                        value = f"{value:.1f}"
+                    elif key == "course":
+                        value = value["name"]
+
+                    treeview_row.append(value)
+                else:
+                    treeview_row.append("")
+
+            tree.insert("", "end", values=tuple(treeview_row))
+            row_count += 1
+
+        total_rows.set(f"Số môn học tham gia: {row_count}")
 
     def search():
-        # remove existing data in windows
-        clear_student_data()
-        tree.delete(*tree.get_children())
+        clear_data()
 
-        nested_lookup = QG.generate_lookup_with_pipeline("Course", "courseId", "_id", "course")
-        switch_grade_logic = QG.generate_simple_switch("avg_score", "gte", {8: "Giỏi", 6: "Khá", 4: "Trung Bình", 2: "Yếu"}, "Chưa Đạt")
-
-        query = [
-            QG.generate_lookup_with_pipeline("Enrollment", "_id", "studentId", "enrolls", nested_lookup, "course"),
-            QG.generate_project({
-                "_id": 1,
-                "name": 1,
-                "avg_score": {"$avg": QG.generate_map("enrolls", "e", "score")},
-                "address": 1,
-                "phone": 1,
-                "dob": 1,
-                "enrolls": 1
-                }),
-            QG.generate_add_fields({"grade": switch_grade_logic})
-        ]
+        query = []
 
         try:
             search_id = id_entry.get().strip()
@@ -61,7 +75,7 @@ def loop(root, db_connect):
                 raise ValueError(f"'{search_id}' không phải là mã sinh viên hợp lệ! Mã sinh viên gồm 24 ký tự [A-z0-9].")
         
             if search_id:
-                query.insert(0, QG.generate_match( {"_id": ObjectId(search_id)} ))
+                query = generate_query_find_with_student_id_and_list_courses_join(search_id)
 
         except Exception as e:
             messagebox.showerror("Dữ liệu sai!", e, parent=sub_window)
@@ -76,36 +90,7 @@ def loop(root, db_connect):
             
             show_student_data(cursor[0])
 
-            enrolls = cursor[0]["enrolls"]
-
-            row_count = 0
-            for db_row in enrolls:
-                treeview_row = [str(row_count + 1)]
-
-                for key in headings.keys():
-                    add_data_to_column = headings[key][2]
-
-                    if not add_data_to_column:
-                        continue
-
-                    if key in db_row:
-                        value = db_row[key]
-
-                        if key == "enrollDate":
-                            value = value.strftime("%d/%m/%Y")
-                        elif key == "score":
-                            value = f"{value:.1f}"
-                        elif key == "course":
-                            value = value["name"]
-
-                        treeview_row.append(value)
-                    else:
-                        treeview_row.append("")
-
-                tree.insert("", "end", values=tuple(treeview_row))
-                row_count += 1
-
-            total_rows.set(f"Số môn học tham gia: {row_count}")
+            show_enrolls_data(cursor[0]["enrolls"])
 
         except Exception as e:
             print(e)

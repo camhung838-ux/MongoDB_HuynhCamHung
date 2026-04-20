@@ -1,33 +1,51 @@
-from bson import ObjectId
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.db_connect import DbConnect
-from utils.query_generator import QueryGenerator as QG
-from utils.support_functions import show_default_error
+from utils.support_functions import show_default_error, generate_query_n_students_highest_avg
 
 import re
 
 ########### SUB WINDOWS 4 ###########
 def loop(root, db_connect):
-    
-    def search():
-        # remove existing table data in windows
+    def clear_data():
+         # remove existing table data in windows
         total_rows.set(f"Tổng cộng: 0")
         tree.delete(*tree.get_children())
 
-        query = [
-                QG.generate_lookup("Enrollment", "_id", "studentId", "enrolls"),
-                QG.generate_project({
-                    "_id": 1,
-                    "name": 1,
-                    "avg_score": {"$avg": "$enrolls.score"},
-                    "address": 1,
-                    "phone": 1,
-                    "dob": 1
-                    }),
-                    QG.generate_sort({"avg_score": -1})                ]
+    def show_result(cursor):
+        
+        row_count = 0
+        for db_row in cursor:
+            
+            treeview_row = [str(row_count + 1)]
+
+            for key in headings.keys():
+                add_data_to_column = headings[key][2]
+
+                if not add_data_to_column:
+                    continue
+
+                if key in db_row:
+                    value = db_row[key]
+
+                    if key == "dob":
+                        value = value.strftime("%d/%m/%Y")
+                    elif key == "avg_score":
+                        value = f"{value:.1f}"
+
+                    treeview_row.append(value)
+                else:
+                    treeview_row.append("")
+
+            tree.insert("", "end", values=tuple(treeview_row))
+            row_count += 1
+
+        total_rows.set(f"Tổng cộng: {row_count}")
+
+    def search():
+        clear_data()
+
+        query = []
 
         try:
             # generate query from n_students
@@ -36,8 +54,7 @@ def loop(root, db_connect):
             if not re.match("^[\\d\\s]*$", n_students):
                 raise ValueError(f"'{n_students}' không phải là số hợp lệ!")
         
-            if n_students:
-                query.append(QG.generate_limit(int(n_students)))
+            query = generate_query_n_students_highest_avg(n_students)
 
         except Exception as e:
             total_rows.set(f"Tổng cộng: 0")
@@ -51,34 +68,8 @@ def loop(root, db_connect):
                 show_default_error(2, sub_window)
                 return
             
-            row_count = 0
-            for db_row in cursor:
-                
-                treeview_row = [str(row_count + 1)]
-
-                for key in headings.keys():
-                    add_data_to_column = headings[key][2]
-
-                    if not add_data_to_column:
-                        continue
-
-                    if key in db_row:
-                        value = db_row[key]
-
-                        if key == "dob":
-                            value = value.strftime("%d/%m/%Y")
-                        elif key == "avg_score":
-                            value = f"{value:.1f}"
-
-                        treeview_row.append(value)
-                    else:
-                        treeview_row.append("")
-
-                tree.insert("", "end", values=tuple(treeview_row))
-                row_count += 1
-
-            total_rows.set(f"Tổng cộng: {row_count}")
-
+            show_result(cursor)
+            
         except Exception as e:
             print(e)
             show_default_error(3, sub_window)
@@ -109,10 +100,11 @@ def loop(root, db_connect):
     btn_search.grid(row=1, column=1, sticky="e")
 
     tk.Label(sub_window).grid(row=2)
+
+    # Widgets for showing data
     total_rows = tk.StringVar(value="Tổng cộng: 0")
     lbl_total = tk.Label(sub_window, textvariable=total_rows).grid(row=3, column=0, sticky="w")
 
-    # Show data
     # key: [column name, column width, add db data to column]
     headings = {
         "stt": ["No", 30, False],

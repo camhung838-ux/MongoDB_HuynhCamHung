@@ -1,5 +1,3 @@
-from bson import ObjectId
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -9,7 +7,6 @@ from utils.support_functions import show_default_error
 
 import windows_find_with_year, windows_count_by_course, windows_find_student_with_id_and_list_courses, windows_find_n_students_highest_avg, windows_find_with_score
 
-import re
 from functools import partial
 
 class StudentManagementApp:

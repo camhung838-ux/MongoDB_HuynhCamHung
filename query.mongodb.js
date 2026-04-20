@@ -45,9 +45,8 @@ db.Course.aggregate([
 // a. Mã môn học, tên môn học, điểm số, ngày tham gia mà sinh viên đó tham gia (2d)
 // b. Điểm trung bình (2d)
 // c. Xếp loại sinh viên (2d)
-
 /*
-let _id = "69e3d4f2f275f6f08af40030";
+let _id = "69e60e97e4e78f4d787d569a";
 
 db.Student.aggregate([
   {
@@ -101,7 +100,7 @@ db.Student.aggregate([
             { case: { $gte: ["$avg_score", 8] }, then: "Giỏi" },
             { case: { $gte: ["$avg_score", 6] }, then: "Khá" },
             { case: { $gte: ["$avg_score", 4] }, then: "Trung Bình" },
-            { case: { $gte: ["$avg_score", 2] }, then: "Yếu" }
+            { case: { $gte: ["$avg_score", 2] }, then: "Yếu" },
           ],
           default: "Chưa Đạt",
         },

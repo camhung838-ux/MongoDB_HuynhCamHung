@@ -1,24 +1,40 @@
-from bson import ObjectId
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.db_connect import DbConnect
-from utils.query_generator import QueryGenerator as QG
-from utils.support_functions import show_default_error
-
-import re
+from utils.support_functions import show_default_error, generate_query_count_by_course
 
 ########### SUB WINDOWS 2 ###########
 def loop(root, db_connect):
     
+    def show_result(cursor):
+        row_count = 0
+        for db_row in cursor:
+
+            treeview_row = [str(row_count + 1)]
+
+            for key in headings.keys():
+                add_data_to_column = headings[key][2]
+
+                if not add_data_to_column:
+                    continue
+
+                if key in db_row:
+                    treeview_row.append(db_row[key])
+                else:
+                    treeview_row.append("")
+
+            tree.insert("", "end", values=tuple(treeview_row))
+            row_count += 1
+
+        total_rows.set(f"Tổng cộng: {row_count}")
+
     # Sub window
     sub_window = tk.Toplevel(root)
     sub_window.title("Đếm số sinh viên theo môn")
     sub_window.geometry("430x400")
     sub_window.resizable(False, True) 
     
-    # Show data
+    # Widgets for showing data
     tk.Label(sub_window).grid(row=0)
 
     total_rows = tk.StringVar(value="Tổng cộng: 0")
@@ -41,14 +57,7 @@ def loop(root, db_connect):
     tree.grid(row=2)
 
     # Query info from database
-    query = [
-                QG.generate_lookup("Enrollment", "_id", "courseId", "enrolls"),
-                QG.generate_project({
-                    "_id": 1,
-                    "name": 1,
-                    "student_count": { "$size": "$enrolls" }
-                })
-            ]
+    query = generate_query_count_by_course()
 
     try:
         cursor = db_connect.aggregate("Course", query)
@@ -57,26 +66,7 @@ def loop(root, db_connect):
             show_default_error(2, sub_window)
             return
         
-        row_count = 0
-        for db_row in cursor:
-
-            treeview_row = [str(row_count + 1)]
-
-            for key in headings.keys():
-                add_data_to_column = headings[key][2]
-
-                if not add_data_to_column:
-                    continue
-
-                if key in db_row:
-                    treeview_row.append(db_row[key])
-                else:
-                    treeview_row.append("")
-
-            tree.insert("", "end", values=tuple(treeview_row))
-            row_count += 1
-
-        total_rows.set(f"Tổng cộng: {row_count}")
+        show_result(cursor)
 
     except Exception as e:
         print(e)

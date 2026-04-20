@@ -1,36 +1,51 @@
-from bson import ObjectId
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 from utils.db_connect import DbConnect
-from utils.query_generator import QueryGenerator as QG
-from utils.support_functions import show_default_error
+from utils.support_functions import show_default_error, generate_query_find_with_score
 
 import re
+
 ########### SUB WINDOWS 5 ###########
 def loop(root, db_connect):
-    
-    def search():
+    def clear_data():
         # remove existing table data in windows
         total_rows.set(f"Tổng cộng: 0")
         tree.delete(*tree.get_children())
 
-        query = [
-                QG.generate_lookup("Student", "studentId", "_id", "student"),
-                QG.generate_lookup("Course", "courseId", "_id", "course"),
-                QG.generate_unwind("student"),
-                QG.generate_unwind("course"),
-                QG.generate_project({
-                    "_id": 0,
-                    "student_id": "$studentId",
-                    "student_name": "$student.name",
-                    "address": "$student.address",
-                    "course_name": "$course.name",
-                    "score": 1,
-                    "enrollDate": 1
-                    })
-            ]
+
+    def show_result(cursor):
+        row_count = 0
+        for db_row in cursor:
+            
+            treeview_row = [str(row_count + 1)]
+
+            for key in headings.keys():
+                add_data_to_column = headings[key][2]
+
+                if not add_data_to_column:
+                    continue
+
+                if key in db_row:
+                    value = db_row[key]
+            
+                    if key == "enrollDate":
+                        value = value.strftime("%d/%m/%Y")
+                    elif key == "score":
+                        value = f"{value:.1f}"
+
+                    treeview_row.append(value)
+                else:
+                    treeview_row.append("")
+
+            tree.insert("", "end", values=tuple(treeview_row))
+            row_count += 1
+
+        total_rows.set(f"Tổng cộng: {row_count}")
+
+
+    def search():
+        clear_data()
 
         try:
             # generate query from gte, lte
@@ -45,14 +60,7 @@ def loop(root, db_connect):
             if lte == "." or not re.match(pattern, lte):
                 raise ValueError(f"'{lte}' không phải là điểm số hợp lệ!")
 
-            conditions = {}
-
-            if gte:
-                conditions["$gte"] = float(gte)
-            if lte:
-                conditions["$lte"] = float(lte)
-            if conditions:
-                query.insert(0, QG.generate_match({"score": conditions}))
+            query = generate_query_find_with_score("score", gte, lte)
 
         except Exception as e:
             messagebox.showerror("Dữ liệu sai!", e, parent=sub_window)
@@ -65,33 +73,7 @@ def loop(root, db_connect):
                 show_default_error(2, sub_window)
                 return
             
-            row_count = 0
-            for db_row in cursor:
-                
-                treeview_row = [str(row_count + 1)]
-
-                for key in headings.keys():
-                    add_data_to_column = headings[key][2]
-
-                    if not add_data_to_column:
-                        continue
-
-                    if key in db_row:
-                        value = db_row[key]
-                
-                        if key == "enrollDate":
-                            value = value.strftime("%d/%m/%Y")
-                        elif key == "score":
-                            value = f"{value:.1f}"
-
-                        treeview_row.append(value)
-                    else:
-                        treeview_row.append("")
-
-                tree.insert("", "end", values=tuple(treeview_row))
-                row_count += 1
-
-            total_rows.set(f"Tổng cộng: {row_count}")
+            show_result(cursor)
 
         except Exception as e:
             print(e)
@@ -127,10 +109,11 @@ def loop(root, db_connect):
     btn_search.grid(row=1, column=1, sticky="e")
 
     tk.Label(sub_window).grid(row=2)
+
+    # Widgets for showing data
     total_rows = tk.StringVar(value="Tổng cộng: 0")
     lbl_total = tk.Label(sub_window, textvariable=total_rows).grid(row=3, column=0, sticky="w")
-
-    # Show data
+    
     # key: [column name, column width, add db data to column]
     headings = {
         "stt": ["No", 30, False],
