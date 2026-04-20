@@ -158,7 +158,7 @@ def generate_query_find_with_student_id_and_list_courses_join(search_id):
     query = [
         {
             "$match": {
-            "   _id": ObjectId(search_id),
+                "_id": ObjectId(search_id),
             },
         },
         {
