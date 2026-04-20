@@ -1,5 +1,5 @@
 use("DT2507L-NK_huynhcamhung_StudentDB");
-db.Student.getShardDistribution();
+
 //Câu 1: Nhập vào 2 năm sinh là 2 số nguyên min và max.
 //Liệt kê các sinh viên có năm sinh nằm trong khoảng từ min đến max (4d)
 
