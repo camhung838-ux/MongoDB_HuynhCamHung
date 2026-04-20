@@ -19,7 +19,12 @@ def loop(root, db_connect):
                     continue
 
                 if key in db_row:
-                    treeview_row.append(db_row[key])
+                    value = db_row[key]
+
+                    if value or value == 0:
+                        treeview_row.append(value)
+                    else:
+                        treeview_row.append("")
                 else:
                     treeview_row.append("")
 
@@ -33,6 +38,7 @@ def loop(root, db_connect):
     sub_window.title("Đếm số sinh viên theo môn")
     sub_window.geometry("430x400")
     sub_window.resizable(False, True) 
+    sub_window.grab_set()
     
     # Widgets for showing data
     tk.Label(sub_window).grid(row=0)

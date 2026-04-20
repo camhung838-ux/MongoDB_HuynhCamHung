@@ -1,5 +1,6 @@
 from tkinter import messagebox
 from bson import ObjectId
+from datetime import date, datetime
 
 def show_default_error(option, parent):
         match option:
@@ -9,6 +10,18 @@ def show_default_error(option, parent):
                 messagebox.showerror("Không có dữ liệu", "Dữ liệu bạn muốn tìm kiếm không tồn tại", parent=parent)
             case 3:
                 messagebox.showerror("Lỗi!", "Gặp sự cố không mong muốn!", parent=parent)
+
+def check_is_valid_float(number_str):
+    try:
+        float(number_str)
+    except:
+        return False
+    
+    return True
+
+def check_is_valid_date(input_date):
+    
+    return isinstance(input_date, (datetime, date))
 
 
 def generate_min_max_year_query(field, gte, lte):
@@ -201,7 +214,7 @@ def generate_query_find_with_student_id_and_list_courses_join(search_id):
         },
         {
             "$addFields": {
-                "rank": {
+                "grade": {
                     "$switch": {
                     "branches": [
                         { "case": { "$gte": ["$avg_score", 8] }, "then": "Giỏi" },

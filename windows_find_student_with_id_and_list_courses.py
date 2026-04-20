@@ -1,10 +1,7 @@
-from bson import ObjectId
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.query_generator import QueryGenerator as QG
-from utils.support_functions import show_default_error, generate_query_find_with_student_id_and_list_courses_join
+from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_query_find_with_student_id_and_list_courses_join
 
 import re
 
@@ -23,12 +20,19 @@ def loop(root, db_connect):
     def show_student_data(student_data):
         for field, str_var in student_variables.items():
             if field in student_data:
-                value = student_data[field]
+                value: str = student_data[field]
                 
                 if field == "dob":
-                    value = value.strftime("%d/%m/%Y")
+                    if value or value == 0:
+                        value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                    else:
+                        value = ""
+
                 elif field == "avg_score":
-                    value = f"{value:.1f}"
+                    if value or value == 0:
+                        value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
+                    else:
+                        value = ""
 
                 prefix = student_data_structure[field][0] 
                 str_var.set(prefix + f"{value}")
@@ -48,9 +52,17 @@ def loop(root, db_connect):
                     value = db_row[key]
 
                     if key == "enrollDate":
-                        value = value.strftime("%d/%m/%Y")
+                        if value or value == 0:
+                            value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                        else:
+                            value = ""
+
                     elif key == "score":
-                        value = f"{value:.1f}"
+                        if value or value == 0:
+                            value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
+                        else:
+                            value = ""
+
                     elif key == "course":
                         value = value["name"]
 
@@ -102,7 +114,8 @@ def loop(root, db_connect):
     sub_window.title("Tìm kiếm sinh viên bằng mã và liệt kê môn học")
     sub_window.geometry("500x600")
     sub_window.resizable(False, True) 
-
+    sub_window.grab_set()
+    
     sub_window.columnconfigure(0, weight=1)
     sub_window.columnconfigure(1, weight=1)
 

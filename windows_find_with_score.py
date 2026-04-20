@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.db_connect import DbConnect
-from utils.support_functions import show_default_error, generate_query_find_with_score
+from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_query_find_with_score
 
 import re
 
@@ -30,9 +29,15 @@ def loop(root, db_connect):
                     value = db_row[key]
             
                     if key == "enrollDate":
-                        value = value.strftime("%d/%m/%Y")
+                        if value or value == 0:
+                            value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                        else:
+                            value = ""
                     elif key == "score":
-                        value = f"{value:.1f}"
+                        if value or value == 0:
+                            value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
+                        else:
+                            value = ""
 
                     treeview_row.append(value)
                 else:
@@ -85,7 +90,8 @@ def loop(root, db_connect):
     sub_window.title("Tìm kiếm theo điểm số")
     sub_window.geometry("850x400")
     sub_window.resizable(False, True) 
-
+    sub_window.grab_set()
+    
     sub_window.columnconfigure(0, weight=1)
     sub_window.columnconfigure(1, weight=1)
 

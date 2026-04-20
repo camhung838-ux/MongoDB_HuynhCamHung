@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, generate_query_n_students_highest_avg
+from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_query_n_students_highest_avg
 
 import re
 
@@ -29,9 +29,16 @@ def loop(root, db_connect):
                     value = db_row[key]
 
                     if key == "dob":
-                        value = value.strftime("%d/%m/%Y")
+                        if value or value == 0:
+                            value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                        else:
+                            value = ""
+
                     elif key == "avg_score":
-                        value = f"{value:.1f}"
+                        if value or value == 0:
+                            value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
+                        else:
+                            value = ""
 
                     treeview_row.append(value)
                 else:
@@ -80,7 +87,8 @@ def loop(root, db_connect):
     sub_window.title("Tìm kiếm n sinh viên có điểm trung bình cao nhất")
     sub_window.geometry("850x400")
     sub_window.resizable(False, True) 
-
+    sub_window.grab_set()
+    
     sub_window.columnconfigure(0, weight=1)
     sub_window.columnconfigure(1, weight=1)
 
@@ -110,7 +118,7 @@ def loop(root, db_connect):
         "stt": ["No", 30, False],
         "_id": ["Mã sinh viên", 180, True],
         "name": ["Họ tên", 170, True],
-        "avg_score": ["Điểm số", 70, True],
+        "avg_score": ["Điểm AVG", 70, True],
         "address": ["Địa chỉ", 200, True],
         "phone": ["SĐT", 100, True],
         "dob": ["Ngày sinh", 100, True]

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, generate_min_max_year_query
+from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_min_max_year_query
 
 import re
 
@@ -23,15 +23,24 @@ def loop(root, db_connect):
 
                     if not add_data_to_column:
                         continue
-
+                    
                     if key in db_row:
+                        value = db_row[key]
+
                         if key == "dob":
-                            treeview_row.append(db_row[key].strftime("%d/%m/%Y"))
+                            if value or value == 0:
+                                value = db_row[key].strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                            else:
+                                value = ""
                         else:
-                            treeview_row.append(db_row[key])
+                            value = db_row[key]
+
+                        treeview_row.append(value)
+
                     else:
                         treeview_row.append("")
-
+                    
+                    
                 tree.insert("", "end", values=tuple(treeview_row))      
                 row_count += 1
             
@@ -80,7 +89,8 @@ def loop(root, db_connect):
         sub_window.title("Tìm kiếm theo năm sinh")
         sub_window.geometry("730x400")
         sub_window.resizable(False, True) 
-
+        sub_window.grab_set()
+        
         sub_window.columnconfigure(0, weight=1)
         sub_window.columnconfigure(1, weight=1)
 
