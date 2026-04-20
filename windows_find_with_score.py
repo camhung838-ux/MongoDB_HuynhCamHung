@@ -1,0 +1,152 @@
+from bson import ObjectId
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+from utils.db_connect import DbConnect
+from utils.query_generator import QueryGenerator as QG
+from utils.support_functions import show_default_error
+
+import re
+########### SUB WINDOWS 5 ###########
+def loop(root, db_connect):
+    
+    def search():
+        # remove existing table data in windows
+        total_rows.set(f"Tổng cộng: 0")
+        tree.delete(*tree.get_children())
+
+        query = [
+                QG.generate_lookup("Student", "studentId", "_id", "student"),
+                QG.generate_lookup("Course", "courseId", "_id", "course"),
+                QG.generate_unwind("student"),
+                QG.generate_unwind("course"),
+                QG.generate_project({
+                    "_id": 0,
+                    "student_id": "$studentId",
+                    "student_name": "$student.name",
+                    "address": "$student.address",
+                    "course_name": "$course.name",
+                    "score": 1,
+                    "enrollDate": 1
+                    })
+            ]
+
+        try:
+            # generate query from gte, lte
+            gte = n_students_entry.get().strip()
+            lte = max_score_entry.get().strip()
+
+            pattern = "^[\\d\\s]*\\.?[\\d\\s]*$"
+
+            if gte == "." or not re.match(pattern, gte):
+                raise ValueError(f"'{gte}' không phải là điểm số hợp lệ!")
+            
+            if lte == "." or not re.match(pattern, lte):
+                raise ValueError(f"'{lte}' không phải là điểm số hợp lệ!")
+
+            conditions = {}
+
+            if gte:
+                conditions["$gte"] = float(gte)
+            if lte:
+                conditions["$lte"] = float(lte)
+            if conditions:
+                query.insert(0, QG.generate_match({"score": conditions}))
+
+        except Exception as e:
+            messagebox.showerror("Dữ liệu sai!", e, parent=sub_window)
+            return
+
+        try:
+            cursor = db_connect.aggregate("Enrollment", query)
+
+            if not cursor:
+                show_default_error(2, sub_window)
+                return
+            
+            row_count = 0
+            for db_row in cursor:
+                
+                treeview_row = [str(row_count + 1)]
+
+                for key in headings.keys():
+                    add_data_to_column = headings[key][2]
+
+                    if not add_data_to_column:
+                        continue
+
+                    if key in db_row:
+                        value = db_row[key]
+                
+                        if key == "enrollDate":
+                            value = value.strftime("%d/%m/%Y")
+                        elif key == "score":
+                            value = f"{value:.1f}"
+
+                        treeview_row.append(value)
+                    else:
+                        treeview_row.append("")
+
+                tree.insert("", "end", values=tuple(treeview_row))
+                row_count += 1
+
+            total_rows.set(f"Tổng cộng: {row_count}")
+
+        except Exception as e:
+            print(e)
+            show_default_error(3, sub_window)
+            return
+    
+    # Sub window
+    sub_window = tk.Toplevel(root)
+    sub_window.title("Tìm kiếm theo điểm số")
+    sub_window.geometry("850x400")
+    sub_window.resizable(False, True) 
+
+    sub_window.columnconfigure(0, weight=1)
+    sub_window.columnconfigure(1, weight=1)
+
+    # Search control
+    tk.Label(sub_window).grid(row=0)
+
+    search_frame = tk.Frame(sub_window)
+    search_frame.grid(row=1, column=0, sticky="w")
+    
+    n_students_lbl = tk.Label(search_frame, text="Từ: ")
+    n_students_entry = tk.Entry(search_frame, width=6)
+    max_score_lbl = tk.Label(search_frame, text="Đến: ")
+    max_score_entry = tk.Entry(search_frame, width=6)
+
+    n_students_lbl.grid(row=0,column=0)
+    n_students_entry.grid(row=0,column=1)
+    max_score_lbl.grid(row=0,column=2)
+    max_score_entry.grid(row=0,column=3)
+    
+    btn_search = tk.Button(sub_window, text="Tìm kiếm", command=search)
+    btn_search.grid(row=1, column=1, sticky="e")
+
+    tk.Label(sub_window).grid(row=2)
+    total_rows = tk.StringVar(value="Tổng cộng: 0")
+    lbl_total = tk.Label(sub_window, textvariable=total_rows).grid(row=3, column=0, sticky="w")
+
+    # Show data
+    # key: [column name, column width, add db data to column]
+    headings = {
+        "stt": ["No", 30, False],
+        "student_id": ["Mã sinh viên", 180, True],
+        "student_name": ["Họ tên", 170, True],
+        "address": ["Địa chỉ", 200, True],
+        "course_name": ["Môn học", 100, True],
+        "score": ["Điểm số", 70, True],
+        "enrollDate": ["Ngày enroll", 100, True]
+    }
+
+    tree = ttk.Treeview(sub_window, columns=tuple(headings.keys()), show="headings")
+
+    for key, value in headings.items():
+        tree.heading(key, text=value[0])
+        tree.column(key, width=value[1],stretch=tk.NO)
+
+    tree.grid(row=4, columnspan=2)
+    
