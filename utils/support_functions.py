@@ -1,6 +1,7 @@
 from tkinter import messagebox
 from bson import ObjectId
 from datetime import date, datetime
+from textwrap import wrap
 
 def show_default_error(option, parent):
         match option:
@@ -11,6 +12,14 @@ def show_default_error(option, parent):
             case 3:
                 messagebox.showerror("Lỗi!", "Gặp sự cố không mong muốn!", parent=parent)
 
+def add_line_break_every_n_chars(text: str, n_chars: int):
+
+    if isinstance(text, str):
+        text_arr = wrap(text, n_chars)
+        return "\n".join(text_arr), len(text_arr)
+    else:
+        return text, 0
+    
 def check_is_valid_float(number_str):
     try:
         float(number_str)
@@ -195,6 +204,20 @@ def generate_query_find_with_student_id_and_list_courses_join(search_id):
                     },
                     },
                     { "$unwind": "$course" },
+                    {
+                        "$addFields": {
+                            "courseName": "$course.name",
+                        },
+                    },
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "courseId": 1,
+                            "courseName": 1,
+                            "score": 1,
+                            "enrollDate": 1,
+                        },
+                    }
                 ],
                 "as": "enrolls",
             },

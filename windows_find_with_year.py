@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_min_max_year_query
+from utils.support_functions import show_default_error, add_line_break_every_n_chars, check_is_valid_float, check_is_valid_date, generate_min_max_year_query
 
 import re
 
@@ -9,11 +9,14 @@ import re
 def loop(root, db_connect):
         def clear_data():
             # remove existing table data in windows
-            total_rows.set(f"Tổng cộng: 0")
+            style.configure("Treeview", rowheight=20) 
+            total_rows.set(f"Tổng cộng: 0")      
             tree.delete(*tree.get_children())
 
         def show_result(cursor):
             row_count = 0
+            max_line_count = 1
+
             for db_row in cursor:
 
                 treeview_row = [str(row_count + 1)]
@@ -24,26 +27,29 @@ def loop(root, db_connect):
                     if not add_data_to_column:
                         continue
                     
+                    value = ""
+
                     if key in db_row:
                         value = db_row[key]
 
-                        if key == "dob":
-                            if value or value == 0:
+                        if value or value == 0:
+                            if key == "dob":
                                 value = db_row[key].strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
                             else:
-                                value = ""
+                                value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
+
+                                if line_count > max_line_count:
+                                    max_line_count = line_count
                         else:
-                            value = db_row[key]
+                            value = ""
 
-                        treeview_row.append(value)
+                        
+                    treeview_row.append(value)
 
-                    else:
-                        treeview_row.append("")
-                    
-                    
                 tree.insert("", "end", values=tuple(treeview_row))      
                 row_count += 1
             
+            style.configure("Treeview", rowheight=max_line_count * 20)
             total_rows.set(f"Tổng cộng: {row_count}")
 
         def search():
@@ -85,9 +91,11 @@ def loop(root, db_connect):
                 return
         
         # Sub window
+        width, height = 730, 600
+
         sub_window = tk.Toplevel(root)
         sub_window.title("Tìm kiếm theo năm sinh")
-        sub_window.geometry("730x400")
+        sub_window.geometry(f"{width}x{height}")
         sub_window.resizable(False, True) 
         sub_window.grab_set()
         
@@ -128,10 +136,18 @@ def loop(root, db_connect):
             "phone": ["SĐT", 100, True],
             "dob": ["Ngày sinh", 100, True]
         }
-        tree = ttk.Treeview(sub_window, columns=tuple(headings.keys()), show="headings")
+
+        tree_view_frame = tk.Frame(sub_window, width=width, height=height - 200)
+        tree_view_frame.pack_propagate(False)
+        tree_view_frame.grid(row=4, columnspan=2)
+
+        style = ttk.Style()
+        style.configure("Treeview", rowheight=20)
+        
+        tree = ttk.Treeview(tree_view_frame, columns=tuple(headings.keys()), show="headings")
     
         for key, value in headings.items():
             tree.heading(key, text=value[0])
             tree.column(key, width=value[1],stretch=tk.NO)
 
-        tree.grid(row=4, columnspan=2)
+        tree.pack(fill="both", expand=True)

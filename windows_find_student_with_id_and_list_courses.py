@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, check_is_valid_float, check_is_valid_date, generate_query_find_with_student_id_and_list_courses_join
+from utils.support_functions import show_default_error, add_line_break_every_n_chars, check_is_valid_float, check_is_valid_date, generate_query_find_with_student_id_and_list_courses_join
 
 import re
 
@@ -11,9 +11,11 @@ def loop(root, db_connect):
     def clear_data():
         # remove existing data in windows
         for field, str_var in student_variables.items():
+            style.configure("Treeview", rowheight=20)
             prefix = student_data_structure[field][0] 
             str_var.set(prefix)
 
+        style.configure("Treeview", rowheight=20)
         total_rows.set(f"Số môn học tham gia: 0")
         tree.delete(*tree.get_children())
 
@@ -22,57 +24,66 @@ def loop(root, db_connect):
             if field in student_data:
                 value: str = student_data[field]
                 
-                if field == "dob":
-                    if value or value == 0:
+                if value or value == 0:
+                    if field == "dob":
                         value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
-                    else:
-                        value = ""
 
-                elif field == "avg_score":
-                    if value or value == 0:
+                    elif field == "avg_score":
                         value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
-                    else:
-                        value = ""
 
-                prefix = student_data_structure[field][0] 
+                    else:
+                        max_length = 40
+
+                        if isinstance(value, str) and len(value) > max_length:
+                            value = value[0: max_length] + "..."
+
+                else:
+                    value = ""
+
+                prefix = student_data_structure[field][0]
+
                 str_var.set(prefix + f"{value}")
     
     def show_enrolls_data(enrolls):
         row_count = 0
+        max_line_count = 1
+
         for db_row in enrolls:
             treeview_row = [str(row_count + 1)]
-
+            
             for key in headings.keys():
                 add_data_to_column = headings[key][2]
 
                 if not add_data_to_column:
                     continue
+                
+                value = ""
 
                 if key in db_row:
                     value = db_row[key]
 
-                    if key == "enrollDate":
-                        if value or value == 0:
+                    if value or value == 0:
+                        if key == "enrollDate":
                             value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
-                        else:
-                            value = ""
 
-                    elif key == "score":
-                        if value or value == 0:
+                        elif key == "score":
                             value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
                         else:
-                            value = ""
+                            value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
 
-                    elif key == "course":
-                        value = value["name"]
+                            if line_count > max_line_count:
+                                max_line_count = line_count
+                    else:
+                        value = ""
 
-                    treeview_row.append(value)
-                else:
-                    treeview_row.append("")
+
+                treeview_row.append(value)
+            
 
             tree.insert("", "end", values=tuple(treeview_row))
             row_count += 1
 
+        style.configure("Treeview", rowheight=max_line_count * 20)
         total_rows.set(f"Số môn học tham gia: {row_count}")
 
     def search():
@@ -110,9 +121,11 @@ def loop(root, db_connect):
             return
     
     # Sub window
+    width, height = 500, 700
+
     sub_window = tk.Toplevel(root)
     sub_window.title("Tìm kiếm sinh viên bằng mã và liệt kê môn học")
-    sub_window.geometry("500x600")
+    sub_window.geometry(f"{width}x{height}")
     sub_window.resizable(False, True) 
     sub_window.grab_set()
     
@@ -164,15 +177,22 @@ def loop(root, db_connect):
     headings = {
         "stt": ["No", 30, False],
         "courseId": ["Mã môn học", 150, True],
-        "course": ["Tên môn học", 150, True],
+        "courseName": ["Tên môn học", 150, True],
         "score": ["Điểm số", 70, True],
         "enrollDate": ["Ngày enroll", 100, True]
     }
 
-    tree = ttk.Treeview(sub_window, columns=tuple(headings.keys()), show="headings")
+    tree_view_frame = tk.Frame(sub_window, width=width, height=height - 300)
+    tree_view_frame.pack_propagate(False)
+    tree_view_frame.grid(row=windows_row_for_student+3, columnspan=2)
+
+    style = ttk.Style()
+    style.configure("Treeview", rowheight=20)
+
+    tree = ttk.Treeview(tree_view_frame, columns=tuple(headings.keys()), show="headings")
 
     for key, value in headings.items():
         tree.heading(key, text=value[0])
         tree.column(key, width=value[1],stretch=tk.NO)
 
-    tree.grid(row=windows_row_for_student+3, columnspan=2)
+    tree.pack(fill="both", expand=True)
