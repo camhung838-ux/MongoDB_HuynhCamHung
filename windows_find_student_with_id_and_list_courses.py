@@ -1,7 +1,7 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, font, scrolledtext
 
-from utils.support_functions import show_default_error, add_line_break_every_n_chars, check_is_valid_float, check_is_valid_date, generate_query_find_with_student_id_and_list_courses_join
+from utils.support_functions import *
 
 import re
 
@@ -10,39 +10,47 @@ def loop(root, db_connect):
 
     def clear_data():
         # remove existing data in windows
-        for field, str_var in student_variables.items():
-            style.configure("Treeview", rowheight=20)
-            prefix = student_data_structure[field][0] 
-            str_var.set(prefix)
+        for txt in student_data_txts.values():
+            txt.config(state='normal')
+            txt.delete("1.0", "end")
+            txt.config(state='disabled')
 
         style.configure("Treeview", rowheight=20)
         total_rows.set(f"Số môn học tham gia: 0")
         tree.delete(*tree.get_children())
 
     def show_student_data(student_data):
-        for field, str_var in student_variables.items():
+        for field, txt in student_data_txts.items():
             if field in student_data:
-                value: str = student_data[field]
-                
-                if value or value == 0:
-                    if field == "dob":
-                        value = value.strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
+                value = student_data[field]
 
-                    elif field == "avg_score":
-                        value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
+                if not isinstance(txt, scrolledtext.ScrolledText) and not isinstance(value, ObjectId):
 
+                    if value or value == 0:
+                        if field == "dob" and check_is_valid_date(value):
+                            value = value.strftime("%d/%m/%Y")
+
+                        elif field == "avg_score" and check_is_valid_float(value):
+                            value = f"{value:.1f}"
+
+                        elif isinstance(value, str):
+                            value = re.sub("[\\r\\n]+", "", value)
+
+                            max_length_each_line = 40
+                            n_dot = 3
+
+                            value_length = len(value)
+                            if value_length > max_length_each_line:
+                                value = value[0: max_length_each_line] + "..." * n_dot
+                        else:
+                            value = "NaN"
                     else:
-                        max_length = 40
+                        value = ""
 
-                        if isinstance(value, str) and len(value) > max_length:
-                            value = value[0: max_length] + "..."
-
-                else:
-                    value = ""
-
-                prefix = student_data_structure[field][0]
-
-                str_var.set(prefix + f"{value}")
+  
+                txt.config(state='normal')
+                txt.insert("1.0", str(value))
+                txt.config(state='disabled')
     
     def show_enrolls_data(enrolls):
         row_count = 0
@@ -121,7 +129,7 @@ def loop(root, db_connect):
             return
     
     # Sub window
-    width, height = 500, 700
+    width, height = 500, 720
 
     sub_window = tk.Toplevel(root)
     sub_window.title("Tìm kiếm sinh viên bằng mã và liệt kê môn học")
@@ -149,23 +157,39 @@ def loop(root, db_connect):
 
     # Show student data
     student_data_structure = {
-        "_id": ["Mã sinh viên: ", True],
-        "name": ["Họ tên sinh viên: ", True],
-        "address": ["Địa chỉ: ", True],
-        "phone": ["Điện thoại: ", True],
-        "dob": ["Ngày sinh: ", True],
-        "avg_score": ["Điểm Trung Bình: ", True],
-        "grade": ["Xếp loại: ", False]
+        "_id": ["Mã sinh viên:", True],
+        "name": ["Họ tên:", True],
+        "phone": ["Điện thoại:", True],
+        "dob": ["Ngày sinh:", True],
+        "avg_score": ["Điểm AVG:", True],
+        "grade": ["Xếp loại:", False],
+        "address": ["Địa chỉ:", True],
     }
+
+    # max_student_label_length = max(len(v[0]) for v in student_data_structure.values())
 
     tk.Label(sub_window).grid(row=2)
 
     windows_row_for_student = 3
-
-    student_variables = {}
+    txt_width = 50
+    student_data_txts = {}
     for field, structures in student_data_structure.items():
-        student_variables[field] = tk.StringVar(value=structures[0])
-        tk.Label(sub_window, textvariable=student_variables[field]).grid(row=windows_row_for_student, sticky="w")
+        frame = tk.Frame(sub_window)
+        frame.grid(row=windows_row_for_student, columnspan=2, sticky="w")
+
+        tk.Label(frame, width=10, anchor="w", text=structures[0]).grid(row=0, column=0, sticky="nw")
+
+        txt = None
+
+        if field == "address":
+            txt = scrolledtext.ScrolledText(frame, width=txt_width - 10, height=1)
+        else:
+            txt = tk.Text(frame, height=1, width=txt_width, borderwidth=0, highlightthickness=0, bg=root.cget("bg"), font=font.nametofont("TkDefaultFont"))
+        
+        txt.configure(state="disabled", cursor="arrow")
+        txt.grid(row=0, column=1)
+
+        student_data_txts[field] = txt
         windows_row_for_student += 1
 
     tk.Label(sub_window).grid(row=windows_row_for_student+1)
@@ -196,3 +220,4 @@ def loop(root, db_connect):
         tree.column(key, width=value[1],stretch=tk.NO)
 
     tree.pack(fill="both", expand=True)
+    tree.bind("<Control-Key-c>", lambda x: copy_treeview_selection(tree, x))

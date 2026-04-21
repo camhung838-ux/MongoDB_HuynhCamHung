@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, add_line_break_every_n_chars, check_is_valid_float, check_is_valid_date, generate_query_n_students_highest_avg
+from utils.support_functions import *
 
 import re
 
@@ -149,3 +149,5 @@ def loop(root, db_connect):
         tree.column(key, width=value[1],stretch=tk.NO)
 
     tree.pack(fill="both", expand=True)
+
+    tree.bind("<Control-Key-c>", lambda x: copy_treeview_selection(tree, x))

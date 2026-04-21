@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from utils.support_functions import show_default_error, add_line_break_every_n_chars, generate_query_count_by_course
+from utils.support_functions import *
 
 ########### SUB WINDOWS 2 ###########
 def loop(root, db_connect):
@@ -112,5 +112,7 @@ def loop(root, db_connect):
     tree.pack(fill="both", expand=True)
 
     refresh()
+
+    tree.bind("<Control-Key-c>", lambda x: copy_treeview_selection(tree, x))
 
     

@@ -2,6 +2,7 @@ from tkinter import messagebox
 from bson import ObjectId
 from datetime import date, datetime
 from textwrap import wrap
+import pyperclip
 
 def show_default_error(option, parent):
         match option:
@@ -32,6 +33,23 @@ def check_is_valid_date(input_date):
     
     return isinstance(input_date, (datetime, date))
 
+
+def copy_treeview_selection(tree, event):
+    pyperclip.copy('')
+    selection = tree.selection()
+    column = tree.identify_column(event.x)
+    column_no = int(column.replace("#", "")) - 1
+    
+    copy_values = []
+    for each in selection:
+        try:
+            value = tree.item(each)["values"][column_no]
+            copy_values.append(str(value))
+        except:
+            pass
+    
+    copy_string = "\n".join(copy_values)
+    pyperclip.copy(copy_string)
 
 def generate_min_max_year_query(field, gte, lte):
     and_ = []
