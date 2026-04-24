@@ -31,10 +31,11 @@ def loop(root, db_connect):
                     value = db_row[key]
 
                     if value or value == 0:
-                        value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
+                        if isinstance(value, str):
+                            value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
 
-                        if line_count > max_line_count:
-                            max_line_count = line_count
+                            if line_count > max_line_count:
+                                max_line_count = line_count
                     else:
                         value = ""
                 

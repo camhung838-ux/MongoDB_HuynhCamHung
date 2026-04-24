@@ -35,7 +35,7 @@ def loop(root, db_connect):
                         if value or value == 0:
                             if key == "dob":
                                 value = db_row[key].strftime("%d/%m/%Y") if check_is_valid_date(value) else "NaN"
-                            else:
+                            elif isinstance(value, str):
                                 value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
 
                                 if line_count > max_line_count:

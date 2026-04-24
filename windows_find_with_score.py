@@ -40,7 +40,7 @@ def loop(root, db_connect):
                         elif key == "score":
                             value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
 
-                        else:
+                        elif isinstance(value, str):
                             value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
 
                             if line_count > max_line_count:

@@ -46,82 +46,82 @@ db.Course.aggregate([
 // b. Điểm trung bình (2d)
 // c. Xếp loại sinh viên (2d)
 
-let _id = "69e3d4f2f275f6f08af4002d";
+// let _id = "69e3d4f2f275f6f08af4002d";
 
-db.Student.aggregate([
-  {
-    $match: {
-      _id: ObjectId(_id),
-    },
-  },
-  {
-    $lookup: {
-      from: "Enrollment",
-      let: { master_student_id: "$_id" },
-      pipeline: [
-        { $match: { $expr: { $eq: ["$studentId", "$$master_student_id"] } } },
-        {
-          $lookup: {
-            from: "Course",
-            let: { foreign_course_id: "$courseId" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ["$_id", "$$foreign_course_id"] },
-                },
-              },
-            ],
-            as: "course",
-          },
-        },
-        { $unwind: "$course" },
-        {
-          $addFields: {
-            courseName: "$course.name",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            courseId: 1,
-            courseName: 1,
-            score: 1,
-            enrollDate: 1,
-          },
-        },
-      ],
-      as: "enrolls",
-    },
-  },
-  {
-    $project: {
-      _id: 1,
-      name: 1,
-      avg_score: {
-        $avg: { $map: { input: "$enrolls", as: "e", in: "$$e.score" } },
-      },
-      address: 1,
-      phone: 1,
-      dob: 1,
-      enrolls: 1,
-    },
-  },
-  {
-    $addFields: {
-      rank: {
-        $switch: {
-          branches: [
-            { case: { $gte: ["$avg_score", 8] }, then: "Giỏi" },
-            { case: { $gte: ["$avg_score", 6] }, then: "Khá" },
-            { case: { $gte: ["$avg_score", 4] }, then: "Trung Bình" },
-            { case: { $gte: ["$avg_score", 2] }, then: "Yếu" },
-          ],
-          default: "Chưa Đạt",
-        },
-      },
-    },
-  },
-]);
+// db.Student.aggregate([
+//   {
+//     $match: {
+//       _id: ObjectId(_id),
+//     },
+//   },
+//   {
+//     $lookup: {
+//       from: "Enrollment",
+//       let: { master_student_id: "$_id" },
+//       pipeline: [
+//         { $match: { $expr: { $eq: ["$studentId", "$$master_student_id"] } } },
+//         {
+//           $lookup: {
+//             from: "Course",
+//             let: { foreign_course_id: "$courseId" },
+//             pipeline: [
+//               {
+//                 $match: {
+//                   $expr: { $eq: ["$_id", "$$foreign_course_id"] },
+//                 },
+//               },
+//             ],
+//             as: "course",
+//           },
+//         },
+//         { $unwind: "$course" },
+//         {
+//           $addFields: {
+//             courseName: "$course.name",
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 0,
+//             courseId: 1,
+//             courseName: 1,
+//             score: 1,
+//             enrollDate: 1,
+//           },
+//         },
+//       ],
+//       as: "enrolls",
+//     },
+//   },
+//   {
+//     $project: {
+//       _id: 1,
+//       name: 1,
+//       avg_score: {
+//         $avg: { $map: { input: "$enrolls", as: "e", in: "$$e.score" } },
+//       },
+//       address: 1,
+//       phone: 1,
+//       dob: 1,
+//       enrolls: 1,
+//     },
+//   },
+//   {
+//     $addFields: {
+//       rank: {
+//         $switch: {
+//           branches: [
+//             { case: { $gte: ["$avg_score", 8] }, then: "Giỏi" },
+//             { case: { $gte: ["$avg_score", 6] }, then: "Khá" },
+//             { case: { $gte: ["$avg_score", 4] }, then: "Trung Bình" },
+//             { case: { $gte: ["$avg_score", 2] }, then: "Yếu" },
+//           ],
+//           default: "Chưa Đạt",
+//         },
+//       },
+//     },
+//   },
+// ]);
 
 // câu 4: Nhập vào số nguyên n.
 // Liệt kê n sinh viên có điểm trung bình lớn nhất (4d)

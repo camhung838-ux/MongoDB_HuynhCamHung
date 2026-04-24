@@ -24,7 +24,7 @@ def loop(root, db_connect):
             if field in student_data:
                 value = student_data[field]
 
-                if not isinstance(txt, scrolledtext.ScrolledText) and not isinstance(value, ObjectId):
+                if not isinstance(txt, scrolledtext.ScrolledText):
 
                     if value or value == 0:
                         if field == "dob" and check_is_valid_date(value):
@@ -42,8 +42,6 @@ def loop(root, db_connect):
                             value_length = len(value)
                             if value_length > max_length_each_line:
                                 value = value[0: max_length_each_line] + "..." * n_dot
-                        else:
-                            value = "NaN"
                     else:
                         value = ""
 
@@ -76,7 +74,7 @@ def loop(root, db_connect):
 
                         elif key == "score":
                             value = f"{value:.1f}" if check_is_valid_float(value) else "NaN"
-                        else:
+                        elif isinstance(value, str):
                             value, line_count = add_line_break_every_n_chars(value, int(headings[key][1] / 10))
 
                             if line_count > max_line_count:
